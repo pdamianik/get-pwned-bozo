@@ -29,7 +29,7 @@ import (
 const (
 	host     = "0.0.0.0"
 	port     = "22"
-	step     = 40.0
+	step     = 15.0
 	gradient = 6.0
 	angle    = 6.0
 )
@@ -87,7 +87,7 @@ func myCustomBubbleteaMiddleware() wish.Middleware {
 			for {
 				tick++
 				p.Send(tickMsg(tick))
-				<-time.After(100 * time.Millisecond)
+				<-time.After(1000 / 24 * time.Millisecond)
 			}
 		}()
 		return p
