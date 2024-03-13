@@ -1,4 +1,4 @@
-# get-pwned-bozzo
+# get-pwned-bozo
 
 A just-for-fun ssh app in go
 
