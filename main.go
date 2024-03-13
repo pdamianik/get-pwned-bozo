@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -27,11 +28,12 @@ import (
 )
 
 const (
-	host     = "0.0.0.0"
-	port     = "22"
-	step     = 15.0
-	gradient = 6.0
-	angle    = 6.0
+	host      = "0.0.0.0"
+	port      = "22"
+	step      = 15.0
+	gradient  = 6.0
+	angle     = 6.0
+	maxGuests = 3
 )
 
 const graphic = `⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -47,12 +49,26 @@ const graphic = `⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⠀⠀⠀⠀⠀⠀
 `
 
 func main() {
+	var guestCount atomic.Int32
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(host, port)),
 		wish.WithHostKeyPath(".ssh/id_ed25519"),
 		wish.WithMiddleware(
 			myCustomBubbleteaMiddleware(),
 			activeterm.Middleware(), // Bubble Tea apps usually require a PTY.
+			func(next ssh.Handler) ssh.Handler {
+				return func(sess ssh.Session) {
+					if guestCount.Add(1) > maxGuests {
+						guestCount.Add(-1)
+						wish.Errorln(sess, "Rate limited")
+						return
+					}
+					next(sess)
+					if guestCount.Add(-1) < 0 {
+						guestCount.Store(0)
+					}
+				}
+			},
 			logging.Middleware(),
 		),
 	)
